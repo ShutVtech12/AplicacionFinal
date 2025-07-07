@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "619453238877",
+    "project_id": "altruism-44791",
+    "storage_bucket": "altruism-44791.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:619453238877:android:4b95eafa6d6cc02b0447b4",
+        "android_client_info": {
+          "package_name": "com.altruism"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC48p8T3kg6ljd1h56NtorP6IBtehbTgLQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
