@@ -53,7 +53,7 @@ const ActualizarRecordatorio = ({ route }) => {
         }
     }
     const { racha } = route.params
-    console.log(racha)
+    //console.log(racha)
     //Apollo
     const [actualizarRacha] = useMutation(ACTUALIZAR_RACHA)
 
@@ -112,7 +112,7 @@ const ActualizarRecordatorio = ({ route }) => {
         hoy.setSeconds(0, 0); // Ignora segundos y ms para la comparación
 
         if (fechaInicioSeleccionada < hoy) {
-            setMensaje('La fecha de inicio no puede ser anterior a fecha la fecha actual.');
+            setMensaje('La fecha de inicio no puede ser anterior a la fecha actual.');
             setVisibleDialog(true);
             return;
         }

@@ -8,7 +8,10 @@ import { createStackNavigator } from '@react-navigation/stack';
 const Stack = createStackNavigator();
 
 import { Provider as PaperProvider } from 'react-native-paper';
+import { Button } from 'react-native-paper';
 import PushNotification from 'react-native-push-notification';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { BackHandler } from 'react-native';
 
 import Login from './views/Login';
 import CrearCuenta from './views/CrearCuenta';
@@ -28,6 +31,7 @@ import InfoEntregas from './views/InfoEntregas';
 import InfoIndividualEntrega from './views/InfoIndividualEntrega';
 import CrearRecordatorio from './views/CrearRecordatorio';
 import ActualizarRecordatorio from './views/ActualizarRecordatorio';
+import Bienvenida from './views/Bienvenida';
 
 PushNotification.createChannel(
   {
@@ -36,7 +40,7 @@ PushNotification.createChannel(
     importance: 4,
     vibrate: true,
   },
-  (created) => console.log(`Canal creado: ${created}`) 
+  //(created) => console.log(`Canal creado: ${created}`)
 );
 
 
@@ -50,7 +54,7 @@ const App = () => {
         status === 2    // PROVISIONAL
       ) {
         const token = await getToken(messaging);
-        console.log('Token FCM:', token);
+        //console.log('Token FCM:', token);
       }
     };
     solicitarPermiso();
@@ -66,10 +70,28 @@ const App = () => {
     });
     return unsubscribe;
   }, []);
+  const cerrarSesion = async (navigation) => {
+    try {
+      await AsyncStorage.clear(); // Limpia todos los datos de sesión
+      // Si tienes tokens en otro lugar, bórralos aquí también
+      navigation.replace('Login'); // Navega a Login
+      BackHandler.exitApp(); // Cierra la app
+    } catch (error) {
+      console.log('Error al cerrar sesión:', error);
+    }
+  };
   return (
     <PaperProvider>
       <NavigationContainer>
-        <Stack.Navigator initialRouteName="Login">
+        <Stack.Navigator initialRouteName="Bienvenida">
+          <Stack.Screen
+            name='Bienvenida'
+            component={Bienvenida}
+            options={{
+              title: "Bienvenida",
+              headerShown: false
+            }}
+          />
           <Stack.Screen
             name='Login'
             component={Login}
@@ -84,7 +106,7 @@ const App = () => {
             options={{
               title: "Ingresa tus datos",
               headerStyle: {
-                backgroundColor: '#FFA94D'
+                backgroundColor: '#FF9800'
               },
               headerTintColor: '#2E2E2E',
               headerTitleStyle: {
@@ -110,7 +132,7 @@ const App = () => {
             name='LoginMaestra'
             component={LoginMaestra}
             options={{
-              title: "Altruism Admin",
+              title: "Happiness Admin",
               headerStyle: {
                 backgroundColor: '#AEE9FE'
               },
@@ -123,7 +145,7 @@ const App = () => {
           <Stack.Screen
             name='Grupos'
             component={Grupos}
-            options={{
+            options={({ navigation }) => ({
               title: "Grupos",
               headerStyle: {
                 backgroundColor: '#AEE9FE'
@@ -131,8 +153,17 @@ const App = () => {
               headerTintColor: '#2E2E2E',
               headerTitleStyle: {
                 fontWeight: 'bold'
-              }
-            }}
+              },
+              headerRight: () => (
+                <Button
+                  onPress={() => cerrarSesion(navigation)}
+                  buttonColor='red'
+                  textColor='white'
+                >
+                  Salir
+                </Button>
+              ),
+            })}
           />
           <Stack.Screen
             name='AgregarGrupo'
@@ -249,16 +280,25 @@ const App = () => {
           <Stack.Screen
             name='TareasAlumno'
             component={TareasAlumno}
-            options={{
+            options={({ navigation }) => ({
               title: "Bienvenido",
               headerStyle: {
-                backgroundColor: '#FFB86C'
+                backgroundColor: '#4FC3F7'
               },
               headerTintColor: '#2E2E2E',
               headerTitleStyle: {
                 fontWeight: 'bold'
-              }
-            }}
+              },
+              headerRight: () => (
+                <Button
+                  onPress={() => cerrarSesion(navigation)}
+                  buttonColor='red'
+                  textColor='white'
+                >
+                  Salir
+                </Button>
+              ),
+            })}
           />
           <Stack.Screen
             name='CrearRecordatorio'
@@ -266,7 +306,7 @@ const App = () => {
             options={{
               title: "Información del recordatorio",
               headerStyle: {
-                backgroundColor: '#FFB86C'
+                backgroundColor: '#4FC3F7'
               },
               headerTintColor: '#2E2E2E',
               headerTitleStyle: {
@@ -280,7 +320,7 @@ const App = () => {
             options={{
               title: "Información del recordatorio",
               headerStyle: {
-                backgroundColor: '#FFB86C'
+                backgroundColor: '#4FC3F7'
               },
               headerTintColor: '#2E2E2E',
               headerTitleStyle: {
@@ -294,7 +334,7 @@ const App = () => {
             options={({ route }) => ({
               title: route.params.titulo,
               headerStyle: {
-                backgroundColor: '#FFB86C'
+                backgroundColor: '#4FC3F7'
               },
               headerTintColor: '#2E2E2E',
               headerTitleStyle: {

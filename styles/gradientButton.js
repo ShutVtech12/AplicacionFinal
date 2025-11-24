@@ -7,13 +7,17 @@ const GradientButton = ({
     onLongPress, 
     onPress, 
     title,
-    colores = ['#FFB75E', '#ED8F03'] 
+    colores = ['#FFB75E', '#ED8F03'],
+    disabled = false,
+    disabledColors = ['#A9A9A9', '#707070']
 }) => {
+    const handlePress = disabled ? null : onPress;
+    const finalColors = disabled ? disabledColors : colores;
     return (
-        <TouchableRipple onLongPress={onLongPress} onPress={onPress} borderless style={globalStyles.buttonContainer}>
+        <TouchableRipple onLongPress={onLongPress} onPress={handlePress} disabled={disabled} borderless style={globalStyles.buttonContainer}>
             <LinearGradient
                 //color=['#6CBF84','#4CAF50'] VERDE
-                colors={colores}
+                colors={finalColors}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={globalStyles.buttonGra}

@@ -1,5 +1,5 @@
 import React from 'react'
-import { View, ScrollView, SafeAreaView } from 'react-native'
+import { View, ScrollView, SafeAreaView, Linking } from 'react-native'
 
 /* Usados en NativeBase             |           Equivalencia en RN Paper
  Container                          |           View
@@ -36,6 +36,18 @@ const OBTENER_TAREA_ARCHIVO = gql`
 
 const InformacionEntrega = ({ route }) => {
     const { archivo } = route.params
+    const handleOpenLink = async (url) => {
+        // Comprobamos si la URL puede ser manejada por la aplicación
+        const supported = await Linking.canOpenURL(url);
+
+        if (supported) {
+            // Abrimos la URL
+            await Linking.openURL(url);
+        } else {
+            // Puedes usar Toast/Snackbar aquí para notificar al usuario en un entorno de producción
+            console.error(`No se pudo abrir la URL: ${url}`);
+        }
+    };
     const { data: tareaData, loading: tareaLoading, error: tareaError, refetch: tareaRefresh } = useQuery(OBTENER_TAREA_ARCHIVO, {
         variables: {
             input: {
@@ -66,12 +78,11 @@ const InformacionEntrega = ({ route }) => {
             return 1;
         }
     }
-    const tarea = tareaData?.obtenerTareaArchivo;
 
     const totalEntregas = 1
     const entregasAlumno = 1;
     const porcentaje = totalEntregas > 0 ? Math.round((entregasAlumno / totalEntregas) * 100) : 0;
-
+    const googlePhotosLink = archivo.archivoUrl;
     return (
         <SafeAreaView style={globalStyles.contenedorNormal}>
             <View style={{ alignItems: 'center' }}>
@@ -111,6 +122,21 @@ const InformacionEntrega = ({ route }) => {
                         numberOfLines={10}
                     />
                 </ScrollView>
+                {googlePhotosLink && googlePhotosLink.startsWith('http') ? (
+                    <View style={[globalStyles.container, { paddingVertical: 10 }]}>
+                        <Button 
+                            icon="link"
+                            mode="contained"
+                            // Llama a la función con el contenido de archivo.texto
+                            onPress={() => handleOpenLink(googlePhotosLink)} 
+                            style={{ marginTop: 15 }}
+                            buttonColor='#FFB75E' // Usando tu color de acento
+                            labelStyle={{ color: 'white' }}
+                        >
+                            Abrir Foto Entregada
+                        </Button>
+                    </View>
+                ) : null}
             </SafeAreaView>
         </SafeAreaView>
     );

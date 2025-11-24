@@ -1,66 +1,52 @@
 import React, { useState } from 'react'
 import { View, ScrollView, StyleSheet, SafeAreaView, PermissionsAndroid, Platform } from 'react-native'
-
-/* Usados en NativeBase             |           Equivalencia en RN Paper
- Container                          |           View
- Button                             |           Button
- Text                               |           Text
- H1                                 |           Text variant='titleLarge'
- Input                              |           TextInput
- Form                               |           TextInput
- Item                               |           TextInput
- Toast                              |           Snackbar
-
- */
-import { TextInput, Button, Text, Icon, Dialog, Portal } from 'react-native-paper';
+import { TextInput, Button, Text, Icon, Dialog, Portal, Switch } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native'
 import globalStyles from '../styles/global';
 import GradientButton from '../styles/gradientButton';
-import { gql, useMutation } from '@apollo/client'
+import { gql, useMutation, useQuery } from '@apollo/client'
 import LottieView from 'lottie-react-native';
-import DocumentPicker from '@react-native-documents/picker';
-import axios from 'axios';
-
-
 
 //Para cambiar el estado, !tarea.estado
 const NUEVA_ARCHIVO = gql`
-    mutation nuevoArchivo($input: ArchivoInput, $estado: Boolean) {
-        nuevoArchivo(input: $input, estado: $estado){
-            id
-            texto
-            fechaEntregado
-            estado
-            autor
-            tareaAsignada
-            archivoUrl
-            tipoArchivo
-        }
+mutation nuevoArchivo($input: ArchivoInput, $estado: Boolean) {
+    nuevoArchivo(input: $input, estado: $estado){
+        id
+        texto
+        fechaEntregado
+        estado
+        autor
+        tareaAsignada
+        archivoUrl
+        tipoArchivo
     }
-`;
+}`;
+
+
 
 const OBTENER_ARCHIVOS = gql`
-    query obtenerArchivo{
-        obtenerArchivo{
-            id
-            texto
-            fechaEntregado
-            estado
-            autor
-            tareaAsignada
-            archivoUrl
-            tipoArchivo
-        }
+query obtenerArchivo{
+    obtenerArchivo{
+        id
+        texto
+        fechaEntregado
+        estado
+        autor
+        tareaAsignada
+        archivoUrl
+        tipoArchivo
     }
-`
+}`
+
+
 
 const AgregarArchivo = ({ route }) => {
+    const [cargando, setCargando] = useState(false);
     //React navigation
     const navigation = useNavigation();
     //state del formulario
     const [desc, setDesc] = useState('')
     const [estadoFinal, setEstado] = useState(false)
-
     //Apollo
     const [nuevoArchivo] = useMutation(NUEVA_ARCHIVO, {
         update(cache, { data: { nuevoArchivo } }) {
@@ -71,28 +57,38 @@ const AgregarArchivo = ({ route }) => {
             })
         }
     })
-
+    const { data: archivosData, refetch } = useQuery(OBTENER_ARCHIVOS);
+    const archivosEntregados = archivosData?.obtenerArchivo || [];
     //Para el Dialog
     const [visibleDialog, setVisibleDialog] = useState(false);
     const [showFireworks, setShowFireworks] = useState(false);
     const [mensaje, setMensaje] = useState(null)
 
     const handleSubmit = async () => {
+        if (cargando) {
+            return;
+        }
         if (desc === '' || desc.length < 25) {
             setMensaje('Tu tarea no puede ser vacia y debe contener más de 25 caracteres')
             setVisibleDialog(true)
             return
         }
+        if (checked == true && archivoUrl.length < 5) {
+            setMensaje('Tu link de la foto está vacio o es incorrecto')
+            setVisibleDialog(true)
+            return
+        }
+
+        setCargando(true);
         try {
             /*let urlSubida = archivoUrl;
             // Si hay archivo seleccionado y aún no se ha subido
             if (archivoSeleccionado && !archivoUrl) {
-                urlSubida = await uploadToCloudinary(archivoSeleccionado);
-                setArchivoUrl(urlSubida);
+            urlSubida = await uploadToCloudinary(archivoSeleccionado);
+            setArchivoUrl(urlSubida);
             }
             // Optimiza la URL antes de guardar
             const urlOptimizada = optimizarUrlCloudinary(urlSubida, tipoArchivo);*/
-
             const { data } = await nuevoArchivo({
                 variables: {
                     input: {
@@ -104,40 +100,40 @@ const AgregarArchivo = ({ route }) => {
                     estado: !estadoFinal
                 }
             })
+            await refetch();
             setMensaje(data)
             setShowFireworks(true);
             setTimeout(() => {
                 setShowFireworks(false);
+                setCargando(false);
                 navigation.goBack();
             }, 2500);
         } catch (error) {
             console.log(error)
+            setCargando(false);
         }
     }
-
     //Extrayendo los valores
     const fechaActual = new Date()
     const [diasRepe, setDiasRepe] = useState(route.params.diasRepetible || '')
     const [fechaFin, setFechaFin] = useState(new Date(Number(route.params.fechaFinal)));
     const [fechaCre, setFechaCre] = useState(new Date(Number(route.params.fechaInicio)));
     let bandera
-
-
     const esMismoDia = (actual, creado, final) => {
         if (
-            actual.getFullYear() === creado.getFullYear() &&
-            actual.getMonth() === creado.getMonth() &&
-            actual.getDate() === creado.getDate()
+            actual.getUTCFullYear() === creado.getUTCFullYear() &&
+            actual.getUTCMonth() === creado.getUTCMonth() &&
+            actual.getUTCDate() === creado.getUTCDate()
         ) {
             //console.log("Es el mismo dia, verificando con la fecha limite")
             if (
-                actual.getFullYear() === final.getFullYear() &&
-                actual.getMonth() === final.getMonth() &&
-                actual.getDate() === final.getDate()
+                actual.getUTCFullYear() === final.getUTCFullYear() &&
+                actual.getUTCMonth() === final.getUTCMonth() &&
+                actual.getUTCDate() === final.getUTCDate()
             ) {
                 //console.log(actual <= final)
                 //console.log("La fecha actual es el mismo día que la fecha limite, verficando hora")
-                if (actual <= final) {
+                if ((actual.getTime() <= final.getTime())) {
                     //console.log("la actual es menor o igual a final")
                     return true
                 } else {
@@ -151,113 +147,72 @@ const AgregarArchivo = ({ route }) => {
     }
 
     const cumpleRepeticion = (actual, creado, dias, final) => {
-        if (actual.getMonth() + 1 < final.getMonth() + 1) {
-            //console.log("El mes actual es menor. Puedes continuar")
-        } else if (final.getMonth() + 1 === actual.getMonth() + 1) {
-            if (actual <= final) {
-                // Aún no llega la fecha/hora límite
-                // Permitir entrega
-            } else {
-                bandera = "Ya se pasó de la fecha límite estipulada";
+        // 1. Verificación universal de la fecha límite (usando UTC)
+        if (actual.getTime() > final.getTime()) {
+            bandera = "Ya se pasó de la fecha límite estipulada";
+            return false;
+        }
+
+        // 2. Cálculo de días transcurridos de forma universal (usando UTC)
+        const msPorDia = 1000 * 60 * 60 * 24;
+        // Se obtienen los milisegundos de la medianoche de la fecha actual y de la fecha de creación en UTC.
+        // Esto asegura que la diferencia en 'días' no se vea afectada por la hora local.
+        const actualUTC = Date.UTC(actual.getUTCFullYear(), actual.getUTCMonth(), actual.getUTCDate());
+        const creadoUTC = Date.UTC(creado.getUTCFullYear(), creado.getUTCMonth(), creado.getUTCDate());
+        const diferenciaMs = actualUTC - creadoUTC;
+        const pasados = Math.floor(diferenciaMs / msPorDia); // Días enteros UTC pasados
+        // 3. Validación de la periodicidad
+        if (pasados % Number(dias) === 0) {
+            // También debe evitar que la tarea se entregue el día 0, a menos que sea la regla.
+            // Si 'pasados' es 0 (mismo día de creación), y el día de repetición es '1' (diario), esto será True.
+            // Si la intención es que se entregue *a partir* del día N (ej: día 1, 2, 3...) y no el día 0,
+            // la condición debe ser: pasados > 0 && pasados % Number(dias) === 0
+            if (pasados === 0 && Number(dias) === 1) {
+                // Permite la entrega el mismo día si es una tarea diaria.
+                return true;
+            } else if (pasados > 0 && pasados % Number(dias) === 0) {
+                // Permite la entrega en días 1, 2, 3, etc., dependiendo de la repetición.
+                return true;
+            } else if (pasados === 0) {
+                // Si pasados es 0 (mismo día de creación) y dias > 1 (ej: cada 2 días), no debe permitir la entrega
+                bandera = "Aún no es tiempo de entregar esta tarea (Día de inicio)";
                 return false;
             }
-        }
-        const pasados = actual.getDate() - creado.getDate()
-        if (pasados % dias === 0) {
-            //console.log('Cumple los dias que deben pasar')
-            return true
         } else {
-            bandera = "Aún no es tiempo de entregar esta tarea"
-            return false
+            bandera = "Aún no es tiempo de entregar esta tarea";
+            return false;
         }
     }
+
     //Para escoger archivos-------------------------------------------------------------------------------------------
     const [archivoSeleccionado, setArchivoSeleccionado] = useState(null);
     const [nombreArchivo, setNombreArchivo] = useState('');
-    const [archivoUrl, setArchivoUrl] = useState('sin');
+    const [archivoUrl, setArchivoUrl] = useState('');
+    console.log("URL: ", archivoUrl.length)
     const [tipoArchivo, setTipoArchivo] = useState('sin');
-    const solicitarPermisos = async () => {
-        if (Platform.OS === 'android') {
-            try {
-                const granted = await PermissionsAndroid.requestMultiple([
-                    PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
-                    PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
-                ]);
-                // Opcional: verifica si los permisos fueron concedidos
-            } catch (err) {
-                console.warn(err);
-            }
-        }
-    };
-    const seleccionarArchivo = async () => {
-        await solicitarPermisos()
-        try {
-            const file = await pickFile();
-            if (file) {
-                setArchivoSeleccionado(file);
-                setNombreArchivo(file.name);
-                setTipoArchivo(file.type.startsWith('video') ? 'video' : 'audio');
-                setArchivoUrl(null); // Reinicia la URL si se cambia el archivo
-            }
-        } catch (err) {
-            setArchivoSeleccionado(null);
-            setNombreArchivo('');
-            setTipoArchivo(null);
-            setArchivoUrl(null);
-        }
-    };
-    const pickFile = async () => {
-        try {
-            const res = await DocumentPicker.pick({
-                allowMultiSelection: false, // o true si quieres varios
-                type: ['audio/*', 'video/*'], // usa los MIME types estándar
-            });
-            // El picker de @react-native-documents/picker siempre devuelve un array
-            const file = Array.isArray(res) ? res[0] : res;
-            return {
-                uri: file.uri,
-                type: file.type,
-                name: file.name || file.fileName || 'archivo',
-            };
-        } catch (err) {
-            if (err.code === 'DOCUMENT_PICKER_CANCELED') return null;
-            throw err;
-        }
-    };
-    //Para subir archivos a Cloudinary
-    const uploadToCloudinary = async (file) => {
-        const data = new FormData();
-        data.append('file', {
-            uri: file.uri,
-            type: file.type,
-            name: file.name,
+    const [checked, setChecked] = useState(false)
+    const onToggleSwitch = () => {
+        setChecked(prev => {
+            const nuevoValor = !prev;
+            fotoDec(nuevoValor);
+            return nuevoValor;
         });
-        data.append('upload_preset', 'altruism_unsigned');
-        data.append('resource_type', file.type.startsWith('video') ? 'video' : 'auto');
-
-        const cloudName = 'dltv0f7wj';
-        const url = `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`;
-
-        const response = await axios.post(url, data, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-        });
-        return response.data.secure_url;
     };
-    const optimizarUrlCloudinary = (url, tipo) => {
-        if (!url) return url;
-        // Solo optimiza imágenes y videos
-        if (tipo === 'video') {
-            // Ejemplo: reduce calidad y tamaño del video
-            return url.replace('/upload/', '/upload/q_auto:low,w_640/');
-        } else if (tipo === 'audio') {
-            // Para audio normalmente no se optimiza por URL, se usa tal cual
-            return url;
+    const [desac, setDesac] = useState(true)
+    const fotoDec = (valor) => {
+        if (valor) {
+            setDesac(false);
+            setTipoArchivo('sin');
+            console.log(desac)
         } else {
-            // Para imágenes: formato y calidad automáticos, tamaño máximo 800px
-            return url.replace('/upload/', '/upload/f_auto,q_auto,w_800/');
+            setDesac(true);
+            setTipoArchivo('Foto');
+            console.log(desac)
         }
     };
+
     //-------------------------------------------------------------------------------------------------------------------------------------------------------
+
     if (route.params.repetible === 'No') {
         if (fechaActual >= fechaCre && fechaActual <= fechaFin) {
             // Permitir entrega normalmente
@@ -293,7 +248,36 @@ const AgregarArchivo = ({ route }) => {
                                             onChangeText={texto => setDesc(texto)}
                                         />
                                     </View>
-
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-evenly' }}>
+                                        <View>
+                                            <Text style={globalStyles.containerLoginText}>¿Subirá Link de Foto?</Text>
+                                        </View>
+                                        <Switch
+                                            value={checked}
+                                            onValueChange={onToggleSwitch}
+                                        />
+                                    </View>
+                                    <View style={globalStyles.divi}>
+                                        <View style={globalStyles.containerLogin}>
+                                            <Icon
+                                                source="link-box-variant"
+                                                color={'#4CAF50'}
+                                                size={40}
+                                            />
+                                            <TextInput
+                                                disabled={desac}
+                                                label='Link de su foto'
+                                                textColor='black'
+                                                keyboardType='default'
+                                                mode='outlined'
+                                                outlineColor='#FFB75E'
+                                                activeOutlineColor='#FFB75E'
+                                                theme={{ colors: { primary: '#FFB75E', onSurfaceVariant: 'black' } }}
+                                                style={globalStyles.inputBase}
+                                                onChangeText={texto => setArchivoUrl(texto)}
+                                            />
+                                        </View>
+                                    </View>
                                     <GradientButton
                                         title="Entregar Tarea"
                                         onPress={() => handleSubmit()}
@@ -391,7 +375,7 @@ const AgregarArchivo = ({ route }) => {
                         <View>
                             <Text style={globalStyles.textoContenido}>{route.params.descripcion}</Text>
                         </View>
-                        qa     <View>
+                        <View>
                             <View style={globalStyles.divi}>
                                 <View style={globalStyles.containerLogin}>
                                     <Icon
@@ -412,6 +396,36 @@ const AgregarArchivo = ({ route }) => {
                                         numberOfLines={10}
                                         onChangeText={texto => setDesc(texto)}
                                     />
+                                </View>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-evenly' }}>
+                                    <View>
+                                        <Text style={globalStyles.containerLoginText}>¿Subirá Link de Foto?</Text>
+                                    </View>
+                                    <Switch
+                                        value={checked}
+                                        onValueChange={onToggleSwitch}
+                                    />
+                                </View>
+                                <View style={globalStyles.divi}>
+                                    <View style={globalStyles.containerLogin}>
+                                        <Icon
+                                            source="link-box-variant"
+                                            color={'#4CAF50'}
+                                            size={40}
+                                        />
+                                        <TextInput
+                                            disabled={desac}
+                                            label='Link de su foto'
+                                            textColor='black'
+                                            keyboardType='default'
+                                            mode='outlined'
+                                            outlineColor='#FFB75E'
+                                            activeOutlineColor='#FFB75E'
+                                            theme={{ colors: { primary: '#FFB75E', onSurfaceVariant: 'black' } }}
+                                            style={globalStyles.inputBase}
+                                            onChangeText={texto => setArchivoUrl(texto)}
+                                        />
+                                    </View>
                                 </View>
                                 <GradientButton
                                     title="Entregar Tarea"
@@ -498,6 +512,36 @@ const AgregarArchivo = ({ route }) => {
                                         numberOfLines={10}
                                         onChangeText={texto => setDesc(texto)}
                                     />
+                                </View>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-evenly' }}>
+                                    <View>
+                                        <Text style={globalStyles.containerLoginText}>¿Subirá Link de Foto?</Text>
+                                    </View>
+                                    <Switch
+                                        value={checked}
+                                        onValueChange={onToggleSwitch}
+                                    />
+                                </View>
+                                <View style={globalStyles.divi}>
+                                    <View style={globalStyles.containerLogin}>
+                                        <Icon
+                                            source="link-box-variant"
+                                            color={'#4CAF50'}
+                                            size={40}
+                                        />
+                                        <TextInput
+                                            disabled={desac}
+                                            label='Link de su foto'
+                                            textColor='black'
+                                            keyboardType='default'
+                                            mode='outlined'
+                                            outlineColor='#FFB75E'
+                                            activeOutlineColor='#FFB75E'
+                                            theme={{ colors: { primary: '#FFB75E', onSurfaceVariant: 'black' } }}
+                                            style={globalStyles.inputBase}
+                                            onChangeText={texto => setArchivoUrl(texto)}
+                                        />
+                                    </View>
                                 </View>
                                 <GradientButton
                                     title="Entregar Tarea"
@@ -589,6 +633,36 @@ const AgregarArchivo = ({ route }) => {
                                         onChangeText={texto => setDesc(texto)}
                                     />
                                 </View>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-evenly' }}>
+                                    <View>
+                                        <Text style={globalStyles.containerLoginText}>¿Subirá Link de Foto?</Text>
+                                    </View>
+                                    <Switch
+                                        value={checked}
+                                        onValueChange={onToggleSwitch}
+                                    />
+                                </View>
+                                <View style={globalStyles.divi}>
+                                    <View style={globalStyles.containerLogin}>
+                                        <Icon
+                                            source="link-box-variant"
+                                            color={'#4CAF50'}
+                                            size={40}
+                                        />
+                                        <TextInput
+                                            disabled={desac}
+                                            label='Link de su foto'
+                                            textColor='black'
+                                            keyboardType='default'
+                                            mode='outlined'
+                                            outlineColor='#FFB75E'
+                                            activeOutlineColor='#FFB75E'
+                                            theme={{ colors: { primary: '#FFB75E', onSurfaceVariant: 'black' } }}
+                                            style={globalStyles.inputBase}
+                                            onChangeText={texto => setArchivoUrl(texto)}
+                                        />
+                                    </View>
+                                </View>
                                 <GradientButton
                                     title="Entregar Tarea"
                                     onPress={() => {
@@ -630,9 +704,8 @@ const AgregarArchivo = ({ route }) => {
             </SafeAreaView>
         )
     }
-
-
 }
+
 const styles = StyleSheet.create({
     title: {
         color: 'black',
@@ -640,5 +713,7 @@ const styles = StyleSheet.create({
         fontSize: 29
     },
 })
+
+
 
 export default AgregarArchivo;

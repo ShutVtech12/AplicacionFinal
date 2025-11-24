@@ -99,7 +99,7 @@ const Login = () => {
         <SafeAreaView style={globalStyles.contenedorLogin}>
             <View style={globalStyles.contenido}>
                 <Text style={globalStyles.titulo} onLongPress={() => navigation.navigate("PerfilAlumno")}>
-                    Altruism
+                    HAPPINESS
                 </Text>
                 <Text style={styles.tituloLogin}>Bienvenido</Text>
                 <Text style={globalStyles.subTexto}>Por favor, inicia sesión para continuar</Text>
@@ -149,7 +149,7 @@ const Login = () => {
                     onPress={() => handleSubmit()}
                     onLongPress={() => navigation.replace("LoginMaestra")}
                     //Naranja
-                    colores={['#FFB75E', '#ED8F03']}
+                    colores={['#60B0C4', '#A3E4D7']}
                 />
                 <View style={styles.snackContent}>
                     <Snackbar

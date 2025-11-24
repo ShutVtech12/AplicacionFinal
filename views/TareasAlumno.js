@@ -167,7 +167,7 @@ const TareasAlumno = () => {
                         <Button
                             icon="clock-plus"
                             mode="text"
-                            buttonColor="#FFA94D"
+                            buttonColor="#FF9800"
                             textColor='black'
                             onPress={() => navigation.navigate("CrearRecordatorio")}
                         >
@@ -253,19 +253,32 @@ const TareasAlumno = () => {
                         <List.Item
                             key={tarea.id}
                             onPress={() => {
+                                /*('Archivos entregados:', archivoData?.obtenerArchivo);
+                                console.log('Alumno actual:', alumnoData?.obtenerInfoSoloAlumno?.id);
+                                console.log('Tarea actual:', tarea.id);*/
                                 // Busca si ya existe un archivo entregado hoy para esta tarea
-                                const archivoHoy = archivoData?.obtenerArchivo?.find(archivo =>
+                                const archivosAlumnoTarea = archivoData?.obtenerArchivo?.filter(archivo =>
                                     archivo.tareaAsignada === tarea.id &&
-                                    (() => {
-                                        const fechaArchivo = new Date(Number(archivo.fechaEntregado));
-                                        const hoy = new Date();
-                                        return (
-                                            fechaArchivo.getFullYear() === hoy.getFullYear() &&
-                                            fechaArchivo.getMonth() === hoy.getMonth() &&
-                                            fechaArchivo.getDate() === hoy.getDate()
-                                        );
-                                    })()
-                                );
+                                    archivo.autor === alumnoData?.obtenerInfoSoloAlumno?.id
+                                ) || [];
+
+                                const hoy = new Date();
+                                const archivoHoy = archivosAlumnoTarea.find(archivo => {
+                                    const fechaArchivo = new Date(Number(archivo.fechaEntregado));
+                                    /*console.log('Comparando:', {
+                                        fechaArchivo: fechaArchivo.toISOString(),
+                                        hoy: hoy.toISOString(),
+                                        añoIgualUTC: fechaArchivo.getUTCFullYear() === hoy.getUTCFullYear(),
+                                        mesIgualUTC: fechaArchivo.getUTCMonth() === hoy.getUTCMonth(),
+                                        diaIgualUTC: fechaArchivo.getUTCDate() === hoy.getUTCDate()
+                                    });*/
+                                    return (
+                                        fechaArchivo.getFullYear() === hoy.getFullYear() &&
+                                        fechaArchivo.getMonth() === hoy.getMonth() &&
+                                        fechaArchivo.getDate() === hoy.getDate()
+                                    );
+                                });
+                                //console.log("Archivo hoy: ", archivoHoy)
 
                                 if (archivoHoy && tarea.repetible == 'Si') {
                                     // Aquí puedes mostrar un mensaje con Snackbar, Alert, etc.
@@ -293,9 +306,9 @@ const TareasAlumno = () => {
                                     <Text style={globalStyles.textNegro}>{new Date(Number(tarea.fechaInicio)).toLocaleDateString()}</Text>
                                     <Text style={globalStyles.contenidoGrupoItem}>Hora de Inicio:</Text>
                                     <Text style={globalStyles.textNegro}>{new Date(Number(tarea.fechaInicio)).toLocaleTimeString()}</Text>
-                                    <Text style={globalStyles.contenidoGrupoItem}>Fecha Límite:</Text>
+                                    <Text style={globalStyles.contenidoGrupoItem}>Fecha de término:</Text>
                                     <Text style={globalStyles.textNegro}>{new Date(Number(tarea.fechaFinal)).toLocaleDateString()}</Text>
-                                    <Text style={globalStyles.contenidoGrupoItem}>Hora Límite:</Text>
+                                    <Text style={globalStyles.contenidoGrupoItem}>Hora de término:</Text>
                                     <Text style={globalStyles.textNegro}>{new Date(Number(tarea.fechaFinal)).toLocaleTimeString()}</Text>
                                     <Text style={globalStyles.contenidoGrupoItem}>Repetible:</Text>
                                     <Text style={globalStyles.textNegro}>{tarea.repetible}</Text>

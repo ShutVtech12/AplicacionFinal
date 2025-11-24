@@ -71,12 +71,12 @@ const Tarea = ({ route }) => {
             return;
         }
         if (fechaFinal < hoy) {
-            setMensaje('La fecha límite no puede ser anterior a la fecha y hora actual.');
+            setMensaje('La fecha de término no puede ser anterior a la fecha y hora actual.');
             setVisibleDialog(true);
             return;
         }
         if (fechaFinal <= fechaInicio) {
-            setMensaje('La fecha límite debe ser posterior a la fecha de inicio.');
+            setMensaje('La fecha término debe ser posterior a la fecha de inicio.');
             setVisibleDialog(true);
             return;
         }
@@ -295,7 +295,7 @@ const Tarea = ({ route }) => {
                     </View>
                     <View style={globalStyles.divi}>
                         <View style={{ paddingTop: '20' }}>
-                            <Text style={globalStyles.containerLoginText}>Seleccione fecha y hora límite</Text>
+                            <Text style={globalStyles.containerLoginText}>Seleccione fecha y hora de término</Text>
                         </View>
                     </View>
                     <View style={globalStyles.divi}>

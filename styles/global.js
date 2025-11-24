@@ -5,7 +5,7 @@ const globalStyles = StyleSheet.create({
         textAlign: 'justify',
         paddingBottom: '20',
         color: 'black',
-        fontSize: 18
+        fontSize: 16
     },
     btnCancelar: {
         position: 'absolute',
@@ -29,10 +29,18 @@ const globalStyles = StyleSheet.create({
         fontSize: 18
     },
     titulo: {
+        paddingTop: 30,
         textAlign: 'left',
         fontSize: 40,
-        color: '#FF8C42',
+        color: '#4FC3F7',
         fontWeight: '400'
+    },
+    tituloNuevo:{
+        textAlign: 'left',
+        fontSize: 25,
+        color: '#2196F3',
+        fontWeight: '200',
+        paddingBottom: 25
     },
     subTexto: {
         color: 'gray',
@@ -67,6 +75,14 @@ const globalStyles = StyleSheet.create({
         flex: 1,
         flexDirection: 1
     },
+    contenedorLoginNuevo:{
+        backgroundColor: '#FFF9F0',
+        paddingTop: 25,
+        paddingBottom: 30,
+        paddingHorizontal: 40,
+        flex: 1,
+        flexDirection: 1
+    },
     contenedorNormal: {
         backgroundColor: '#FFF9F0',
         paddingVertical: 10,
@@ -84,7 +100,8 @@ const globalStyles = StyleSheet.create({
     contenido: {
         flexDirection: 'column',
         justifyContent: 'center',
-        marginHorizontal: '2.5%'
+        marginHorizontal: '2.5%',
+        paddingBottom: 65
     },
     inputBase: {
         color: 'black',

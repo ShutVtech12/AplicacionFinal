@@ -64,11 +64,11 @@ const OBTENER_GRUPOS = gql`
 
 
 const AgregarTarea = ({ route }) => {
-    
+
 
     //Apollo
     const { data: gruposData, loading: gruposLoading, refetch } = useQuery(OBTENER_GRUPOS);
-    console.log(gruposData)
+    //console.log(gruposData)
     useFocusEffect(
         React.useCallback(() => {
             refetch();
@@ -151,9 +151,13 @@ const AgregarTarea = ({ route }) => {
 
     // Función para combinar:
     function combinarFechaHora(fecha, hora) {
-        const nuevaFecha = new Date(fecha);
-        nuevaFecha.setHours(hora.getHours(), hora.getMinutes(), 0, 0);
-        return nuevaFecha;
+        // Construye la fecha a partir de sus componentes (evita problemas si 'hora' contiene otra fecha)
+        const year = fecha.getFullYear();
+        const month = fecha.getMonth();
+        const day = fecha.getDate();
+        const hours = hora.getHours();
+        const minutes = hora.getMinutes();
+        return new Date(year, month, day, hours, minutes, 0, 0);
     }
 
     const handleFechaChange = (nuevaFecha) => {
@@ -218,25 +222,48 @@ const AgregarTarea = ({ route }) => {
             setVisibleDialog(true);
             return;
         }
-        // Validar fechas
-        const hoy = new Date();
-        hoy.setSeconds(0, 0); // Ignora segundos y ms para la comparación
 
-        if (fechaInicioSeleccionada < hoy) {
+        // --- Nuevo bloque de validación robusta (reemplaza la validación anterior) ---
+        const ahora = new Date();
+        const TOLERANCIA_MS = 30 * 1000; // 30s de tolerancia para evitar rechazos por segundos/milisegundos
+        const inicioMs = fechaInicioSeleccionada.getTime();
+        const finalMs = fechaFinalSeleccionada.getTime();
+        const nowMs = ahora.getTime();
+
+        // Depuración útil
+        /*console.log('DEBUG timezone:', Intl.DateTimeFormat().resolvedOptions().timeZone);
+        console.log('DEBUG offset (min):', ahora.getTimezoneOffset());
+        console.log('DEBUG ahora ISO:', new Date(nowMs).toISOString());
+        console.log('DEBUG inicio ISO:', new Date(inicioMs).toISOString());
+        console.log('DEBUG final ISO:', new Date(finalMs).toISOString());*/
+
+        if (inicioMs < nowMs - TOLERANCIA_MS) {
             setMensaje('La fecha y hora de inicio no puede ser anterior a la fecha y hora actual.');
             setVisibleDialog(true);
             return;
         }
-        if (fechaFinalSeleccionada < hoy) {
-            setMensaje('La fecha límite no puede ser anterior a la fecha y hora actual.');
+        if (finalMs < nowMs - TOLERANCIA_MS) {
+            setMensaje('La fecha de término no puede ser anterior a la fecha y hora actual.');
             setVisibleDialog(true);
             return;
         }
-        if (fechaFinalSeleccionada <= fechaInicioSeleccionada) {
-            setMensaje('La fecha límite debe ser posterior a la fecha de inicio.');
+        if (finalMs <= inicioMs) {
+            setMensaje('La fecha de término debe ser posterior a la fecha de inicio.');
             setVisibleDialog(true);
             return;
         }
+        // --- Fin validación robusta ---
+
+        // Validar diasRepe si es repetible
+        if (repe === 'Si') {
+            const diasNum = parseInt(diasRepe, 10);
+            if (isNaN(diasNum) || diasNum <= 0) {
+                setMensaje('Ingrese una secuencia válida (número mayor que 0).');
+                setVisibleDialog(true);
+                return;
+            }
+        }
+
         //Almacenarlo en la BD
         try {
             for (const grupoId of gruposSeleccionados) {
@@ -248,7 +275,7 @@ const AgregarTarea = ({ route }) => {
                             fechaInicio: fechaInicioSeleccionada.toISOString(),
                             fechaFinal: fechaFinalSeleccionada.toISOString(),
                             repetible: repe,
-                            diasRepetible: diasRepe,
+                            diasRepetible: repe === 'Si' ? String(parseInt(diasRepe, 10)) : "0",
                             grupoPertenece: grupoId
                         }
                     }
@@ -258,7 +285,11 @@ const AgregarTarea = ({ route }) => {
             setsnackbarVisible(true);
             setRedirigir(true);
         } catch (error) {
-            console.log(error)
+            console.log('Error mutation nuevaTarea:', error);
+            console.log('graphQLErrors:', error.graphQLErrors);
+            console.log('networkError.result:', error.networkError?.result || error.networkError);
+            setMensaje('Error al crear tarea: ' + (error.message || 'revisa consola'));
+            setVisibleDialog(true);
         }
     }
 
@@ -396,28 +427,28 @@ const AgregarTarea = ({ route }) => {
                         />
                     </View>
                     <View style={globalStyles.divi}>
-                            <Text style={{ color: 'black', fontSize: 18, textAlign: 'center' }}>
-                                Ingrese la secuencia con la que se repetirá la tarea
-                            </Text>
-                            <Text style={{ color: 'black', fontSize: 18, textAlign: 'justify', paddingHorizontal: 20 }}>
-                                Donde:
-                            </Text>
-                            <Text style={{ color: 'black', fontSize: 15, textAlign: 'justify', paddingHorizontal: 20  }}>
-                                1) Es todos los días.
-                            </Text>
-                            <Text style={{ color: 'black', fontSize: 15, textAlign: 'justify', paddingHorizontal: 20  }}>
-                                2) Es un día si y el otro no. Empezando en la fecha de inicio de la tarea.
-                            </Text>
-                            <Text style={{ color: 'black', fontSize: 15, textAlign: 'justify', paddingHorizontal: 20  }}>
-                                3) Es cada 3er día. Siendo la fecha de inicio de la tarea el primer día.
-                            </Text>
-                            <Text style={{ color: 'black', fontSize: 15, textAlign: 'justify', paddingHorizontal: 20  }}>
-                                n) ...Y así sucesivamente. 
-                            </Text>
-                            <Text style={{ color: 'black', fontSize: 15, textAlign: 'justify', paddingHorizontal: 20  }}>
-                                Siempre será la fecha de inicio de la tarea como primer día válido de entrega.
-                            </Text>
-                        </View>
+                        <Text style={{ color: 'black', fontSize: 18, textAlign: 'center' }}>
+                            Ingrese la secuencia con la que se repetirá la tarea
+                        </Text>
+                        <Text style={{ color: 'black', fontSize: 18, textAlign: 'justify', paddingHorizontal: 20 }}>
+                            Donde:
+                        </Text>
+                        <Text style={{ color: 'black', fontSize: 15, textAlign: 'justify', paddingHorizontal: 20 }}>
+                            1) Es todos los días.
+                        </Text>
+                        <Text style={{ color: 'black', fontSize: 15, textAlign: 'justify', paddingHorizontal: 20 }}>
+                            2) Es un día si y el otro no. Empezando en la fecha de inicio de la tarea.
+                        </Text>
+                        <Text style={{ color: 'black', fontSize: 15, textAlign: 'justify', paddingHorizontal: 20 }}>
+                            3) Es cada 3er día. Siendo la fecha de inicio de la tarea el primer día.
+                        </Text>
+                        <Text style={{ color: 'black', fontSize: 15, textAlign: 'justify', paddingHorizontal: 20 }}>
+                            n) ...Y así sucesivamente.
+                        </Text>
+                        <Text style={{ color: 'black', fontSize: 15, textAlign: 'justify', paddingHorizontal: 20 }}>
+                            Siempre será la fecha de inicio de la tarea como primer día válido de entrega.
+                        </Text>
+                    </View>
                     <View style={globalStyles.divi}>
                         <View style={globalStyles.containerLogin}>
                             <Icon
@@ -441,7 +472,7 @@ const AgregarTarea = ({ route }) => {
                     </View>
                     <View style={globalStyles.divi}>
                         <View style={{ paddingTop: '20' }}>
-                            <Text style={globalStyles.containerLoginText}>Seleccione fecha y hora límite</Text>
+                            <Text style={globalStyles.containerLoginText}>Seleccione fecha y hora de término</Text>
                         </View>
                     </View>
                     <View style={globalStyles.divi}>

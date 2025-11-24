@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { View, ScrollView, StyleSheet, SafeAreaView, PermissionsAndroid, Platform } from 'react-native'
+import { View, ScrollView, StyleSheet, SafeAreaView, PermissionsAndroid, Platform, Alert, InteractionManager } from 'react-native'
 
 /* Usados en NativeBase             |           Equivalencia en RN Paper
  Container                          |           View
@@ -46,6 +46,14 @@ const OBTENER_RACHA = gql`
 
 const CrearRecordatorio = () => {
     const navigation = useNavigation();
+    function combinarFechaHora(fecha, hora) {
+        const year = fecha.getFullYear();
+        const month = fecha.getMonth();
+        const day = fecha.getDate();
+        const hours = hora.getHours();
+        const minutes = hora.getMinutes();
+        return new Date(year, month, day, hours, minutes, 0, 0);
+    }
     function programarRecordatorios({ titulo, fechaInicio, diasConse }) {
         const dias = parseInt(diasConse, 10);
         const fechaBase = new Date(Number(fechaInicio)); // Asegúrate que sea un Date
@@ -67,15 +75,55 @@ const CrearRecordatorio = () => {
             });
         }
     }
-    async function solicitarPermisoNotificaciones() {
-        if (Platform.OS === 'android' && Platform.Version >= 33) {
-            const result = await PermissionsAndroid.request(
-                PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+    function ensureNotificationChannel() {
+        if (Platform.OS === 'android') {
+            PushNotification.createChannel(
+                {
+                    channelId: "recordatorios",
+                    channelName: "Recordatorios",
+                    channelDescription: "Canal para recordatorios programados",
+                    importance: 4,
+                    vibrate: true,
+                },
+                (created) => console.log('createChannel recordatorios:', created)
             );
-            return result === PermissionsAndroid.RESULTS.GRANTED;
         }
-        // En iOS puedes usar PushNotification.requestPermissions()
-        return true;
+    }
+
+    async function solicitarPermisoNotificaciones() {
+        if (Platform.OS === 'android') {
+            if (Platform.Version >= 33) {
+                try {
+                    // Primero checar
+                    const already = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
+                    if (already) return true;
+
+                    // Pedir permiso en respuesta a gesto del usuario
+                    const result = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
+                    return result === PermissionsAndroid.RESULTS.GRANTED;
+                } catch (err) {
+                    console.warn('Permissions request failed:', err);
+                    // Si ocurre el error "not attached to an Activity", informar al usuario y devolver false
+                    Alert.alert(
+                        'Permiso requerido',
+                        'No se pudo solicitar el permiso de notificaciones desde la aplicación. Por favor activa las notificaciones en los ajustes del sistema.',
+                        [{ text: 'Ok' }]
+                    );
+                    return false;
+                }
+            }
+            return true;
+        } else {
+            // iOS
+            try {
+                const res = await PushNotification.requestPermissions();
+                // res puede ser objeto o booleano según implementación
+                return !!(res && (res.alert || res.alert === true));
+            } catch (err) {
+                console.warn('iOS request permissions error:', err);
+                return false;
+            }
+        }
     }
     //Apollo
     const [nuevaRacha] = useMutation(NUEVA_RACHA, {
@@ -96,25 +144,11 @@ const CrearRecordatorio = () => {
         }
     });
 
-    //Fecha y hora utilizada para el DatePicker
-    const [fecha, setFecha] = useState(new Date());
-    const [hora, setHora] = useState(new Date());
+    // Fecha y hora utilizadas por los DatePicker (solo usamos fechaIni / horaIni)
+    // Eliminadas variables no usadas `fecha` / `hora`
 
-    // Función para combinar:
-    function combinarFechaHora(fecha, hora) {
-        const nuevaFecha = new Date(fecha);
-        nuevaFecha.setHours(hora.getHours(), hora.getMinutes(), 0, 0);
-        return nuevaFecha;
-    }
-
-    const handleFechaIniChange = (nuevaFecha) => {
-        setFechaIni(nuevaFecha);
-    };
-
-    const handleHoraIniChange = (nuevaHora) => {
-        setHoraIni(nuevaHora);
-        // NO actualices la fecha aquí
-    };
+    const handleFechaIniChange = (nuevaFecha) => setFechaIni(nuevaFecha);
+    const handleHoraIniChange = (nuevaHora) => setHoraIni(nuevaHora);
 
     //States del formulario
     const [titulo, setTitulo] = useState('')
@@ -140,17 +174,35 @@ const CrearRecordatorio = () => {
 
     //Validar y agregar recordatorio
     const handleSubmit = async () => {
+        // validaciones previas...
+        // pedir permiso primero (en el hilo UI, en respuesta al onPress)
+        const permiso = await solicitarPermisoNotificaciones();
+        // opcional: si quieres guardar aunque no haya permiso, continúa; si no, retorna
+        if (!permiso) {
+            // Puedes decidir guardar igualmente o pedir al usuario que active permiso
+            // aquí solo mostramos mensaje y procedemos a guardar sin programar notifs
+            console.log('Permiso no concedido, se guardará el recordatorio pero no se programarán notificaciones.');
+        }
         if (titulo === '' || diasRepe === '' || !fechaInicioSeleccionada) {
             //Mostrar un error
             setMensaje('Todos los campos son obligatorios')
             setVisibleDialog(true)
             return;
         }
+        // validar diasRepe
+        const diasNum = parseInt(diasRepe, 10);
+        if (isNaN(diasNum) || diasNum <= 0) {
+            setMensaje('Ingrese una secuencia válida (número mayor que 0).');
+            setVisibleDialog(true);
+            return;
+        }
         // Validar fechas
-        const hoy = new Date();
-        hoy.setSeconds(0, 0); // Ignora segundos y ms para la comparación
+        const ahora = new Date();
+        const TOLERANCIA_MS = 15 * 1000; // 15 segundos (ajusta si quieres)
+        const nowMs = ahora.getTime();
+        const inicioMs = fechaInicioSeleccionada.getTime();
 
-        if (fechaInicioSeleccionada < hoy) {
+        if (inicioMs < nowMs - TOLERANCIA_MS) {
             setMensaje('La fecha de inicio no puede ser anterior a fecha la fecha actual.');
             setVisibleDialog(true);
             return;
@@ -166,19 +218,42 @@ const CrearRecordatorio = () => {
                     }
                 }
             });
-            solicitarPermisoNotificaciones()
-            programarRecordatorios({
-                titulo,
-                fechaInicio: fechaInicioSeleccionada.getTime(), // o el valor que guardaste
-                diasConse: diasRepe,
-            });
+            // programar solo si hay permiso
+            if (permiso) {
+                // Small safety: ensure scheduling runs after UI interactions
+                InteractionManager.runAfterInteractions(() => {
+                    programarRecordatorios({
+                        titulo,
+                        fechaInicio: fechaInicioSeleccionada.getTime(),
+                        diasConse: parseInt(diasRepe, 10),
+                    });
+                });
+            }
             setMensaje('Recordatorio creado correctamente');
             setsnackbarVisible(true);
             setRedirigir(true);
         } catch (error) {
-            console.log(error)
+            console.log('Error al crear recordatorio:', error);
+            setMensaje('Error al crear recordatorio. Revisa la consola.');
+            setVisibleDialog(true);
         }
     }
+
+    function ensureNotificationChannel() {
+        if (Platform.OS === 'android') {
+            PushNotification.createChannel(
+                {
+                    channelId: "recordatorios",
+                    channelName: "Recordatorios",
+                    channelDescription: "Canal para recordatorios programados",
+                    importance: 4,
+                    vibrate: true,
+                },
+                (created) => console.log('createChannel recordatorios:', created)
+            );
+        }
+    }
+    // Llama a ensureNotificationChannel() justo antes de programar o en useEffect al montar
 
     return (
         <SafeAreaView style={globalStyles.contenedorNormal}>

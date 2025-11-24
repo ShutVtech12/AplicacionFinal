@@ -254,9 +254,9 @@ const Grupo = ({ route }) => {
                                         <Text style={globalStyles.textNegro}>{new Date(Number(tarea.fechaInicio)).toLocaleDateString()}</Text>
                                         <Text style={globalStyles.contenidoGrupoItem}>Hora de Inicio:</Text>
                                         <Text style={globalStyles.textNegro}>{new Date(Number(tarea.fechaInicio)).toLocaleTimeString()}</Text>
-                                        <Text style={globalStyles.contenidoGrupoItem}>Fecha Límite:</Text>
+                                        <Text style={globalStyles.contenidoGrupoItem}>Fecha de término:</Text>
                                         <Text style={globalStyles.textNegro}>{new Date(Number(tarea.fechaFinal)).toLocaleDateString()}</Text>
-                                        <Text style={globalStyles.contenidoGrupoItem}>Hora Límite:</Text>
+                                        <Text style={globalStyles.contenidoGrupoItem}>Hora de término:</Text>
                                         <Text style={globalStyles.textNegro}>{new Date(Number(tarea.fechaFinal)).toLocaleTimeString()}</Text>
                                         <Text style={globalStyles.contenidoGrupoItem}>Repetible:</Text>
                                         <Text style={globalStyles.textNegro}>{tarea.repetible}</Text>
