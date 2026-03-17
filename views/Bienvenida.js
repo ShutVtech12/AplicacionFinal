@@ -36,7 +36,7 @@ const Bienvenida = () => {
     const navigation = useNavigation();
     const [showFireworks, setShowFireworks] = useState(true);
     const [showUpdate, setShowUpdate] = useState(false);
-    const [showNotification, setNotification] = useState(true);
+    const [showNotification, setNotification] = useState(false);
 
     // Consulta la versión remota
     const { data } = useQuery(OBTENER_TESTING);

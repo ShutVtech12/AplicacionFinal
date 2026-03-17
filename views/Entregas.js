@@ -90,71 +90,16 @@ const Entregas = ({ route }) => {
                     </View>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Text style={globalStyles.tituloGrupo}>Asignadas</Text>
-                    <Text style={globalStyles.tituloGrupo}>{alumnosData && alumnosData.obtenerAlumnos
+                    <Text style={globalStyles.tituloGrupo}>Entregas</Text>
+                    <Text style={globalStyles.tituloGrupo}>{archivosData && archivosData.obtenerArchivoAlumnos
+                        ? archivosData.obtenerArchivoAlumnos.length
+                        : 0}/{alumnosData && alumnosData.obtenerAlumnos
                         ? alumnosData.obtenerAlumnos.length
                         : 0}</Text>
                 </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Text style={globalStyles.tituloGrupo}>Entregadas</Text>
-                    <Text style={globalStyles.tituloGrupo}>{archivosData && archivosData.obtenerArchivoAlumnos
-                        ? archivosData.obtenerArchivoAlumnos.length
-                        : 0}</Text>
-                </View>
-                <SafeAreaView style={globalStyles.container}>
-                    <SegmentedButtons
-                        icon={value}
-                        value={value}
-                        onValueChange={setValue}
-                        buttons={[
-                            {
-                                value: 'Asignadas',
-                                label: 'Asignadas',
-                                labelStyle: {
-                                    color:
-                                        value === 'Asignadas'
-                                            ? (colorScheme === 'dark' ? 'white' : '#2196F3')
-                                            : (colorScheme === 'dark' ? 'black' : 'black'),
-                                    fontWeight: 'bold'
-                                }
-                            },
-                            {
-                                value: 'Entregadas',
-                                label: 'Entregadas',
-                                labelStyle: {
-                                    color:
-                                        value === 'Entregadas'
-                                            ? (colorScheme === 'dark' ? 'white' : '#2196F3')
-                                            : (colorScheme === 'dark' ? 'black' : 'black'),
-                                    fontWeight: 'bold'
-                                }
-                            }
-                        ]}
-                    />
-                </SafeAreaView>
                 <ScrollView>
-                    {alumnosData &&
-                        alumnosData.obtenerAlumnos &&
-                        value === 'Asignadas' &&
-                        alumnosData.obtenerAlumnos.map(alumno => (
-                            <List.Item
-                                key={alumno.id}
-                                title={() => (
-                                    <View>
-                                        <Text style={globalStyles.tituloGrupoItem}>{alumno.nombre}</Text>
-                                    </View>
-                                )}
-                                description={() => (
-                                    <View>
-                                        <Text style={globalStyles.textNegro}>Boleta: {alumno.boleta}</Text>
-                                    </View>
-                                )}
-                                left={props => <List.Icon {...props} icon="account" color='black' />}
-                            />
-                        ))}
                     {archivosData &&
                         archivosData.obtenerArchivoAlumnos &&
-                        value === 'Entregadas' &&
                         (
                             tarea.repetible === 'Si'
                                 ? (

@@ -56,6 +56,16 @@ const ACTUALIZAR_GRUPO = gql`
 
 `
 
+const OBTENER_ALUMNOS = gql`
+    query obtenerAlumnos($input: GrupoIDInput){
+        obtenerAlumnos(input: $input){
+            id
+            nombre
+            boleta
+        }
+    }
+`
+
 const Grupo = ({ route }) => {
     const navigation = useNavigation()
 
@@ -73,7 +83,20 @@ const Grupo = ({ route }) => {
             tarearefetch();
         }, [])
     );
-    
+
+    const { data: alumnosData, loading: alumnosLoading, error: alumnosError, refetch: alumnosRefresh } = useQuery(OBTENER_ALUMNOS, {
+        variables: {
+            input: {
+                grupoPertenece: route.params.id
+            }
+        }
+    })
+    useFocusEffect(
+        React.useCallback(() => {
+            alumnosRefresh();
+        }, [])
+    );
+    const alum = alumnosData && alumnosData.obtenerAlumnos ? alumnosData.obtenerAlumnos.length : 0
 
     const [eliminarTarea] = useMutation(ELIMINAR_TAREA, {
         update(cache) {
@@ -194,6 +217,9 @@ const Grupo = ({ route }) => {
                     Actualizar clave de acceso
                 </Button>
             </View>
+            <View>
+
+            </View>
             <SafeAreaView style={styles.container}>
                 <SegmentedButtons
                     icon={value}
@@ -221,12 +247,23 @@ const Grupo = ({ route }) => {
                                         : (colorScheme === 'dark' ? 'black' : 'black'),
                                 fontWeight: 'bold'
                             }
+                        },
+                        {
+                            value: 'Alumnos',
+                            label: alum +' Alumnos',
+                            labelStyle: {
+                                color:
+                                    value === 'Alumnos'
+                                        ? (colorScheme === 'dark' ? 'white' : '#2196F3')
+                                        : (colorScheme === 'dark' ? 'black' : 'black'),
+                                fontWeight: 'bold'
+                            }
                         }
                     ]}
                 />
             </SafeAreaView>
             <ScrollView>
-                {tareasData && tareasData.obtenerTareas &&
+                {tareasData && tareasData.obtenerTareas && (value === 'Publicadas' || value === 'Programadas') &&
                     tareasData.obtenerTareas
                         .filter(tarea => {
                             const fechaInicio = new Date(Number(tarea.fechaInicio));
@@ -302,6 +339,24 @@ const Grupo = ({ route }) => {
                                 }
                             />
                         ))
+                }
+                {alumnosData && alumnosData.obtenerAlumnos && value === 'Alumnos' &&
+                    alumnosData.obtenerAlumnos.map(alumno => (
+                        <List.Item
+                            key={alumno.id}
+                            title={() => (
+                                <View>
+                                    <Text style={globalStyles.tituloGrupoItem}>{alumno.nombre}</Text>
+                                </View>
+                            )}
+                            description={() => (
+                                <View>
+                                    <Text style={globalStyles.textNegro}>Boleta: {alumno.boleta}</Text>
+                                </View>
+                            )}
+                            left={props => <List.Icon {...props} icon="account" color='black' />}
+                        />
+                    ))
                 }
                 <View style={globalStyles.snackContent}>
                     <Snackbar
