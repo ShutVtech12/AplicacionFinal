@@ -51,55 +51,66 @@ const Tarea = ({ route }) => {
     //Apollo
     const [actualizarTarea] = useMutation(ACTUALIZAR_TAREA)
     const handleSubmit = async () => {
-        //La fecha para la BD es fechaFormato
         const fechaFinal = combinarFechaHora(fecha, hora);
-        const fechaInicio = combinarFechaHora(fechaIni, horaIni)
-        const fechaInicioFormato = fechaInicio.toISOString()
-        const fechaFormato = fechaFinal.toISOString();
-        if (titulo === '' || desc === '' || repetible === '' || diasRepe === '' || fechaFormato === '') {
-            //Mostrar un error
-            setMensaje('Todos los campos son obligatorios')
-            setVisibleDialog(true)
-            return;
-        }
-        // Validar fechas
-        const hoy = new Date();
-        hoy.setSeconds(0, 0); // Ignora segundos y ms para la comparación
-        if (fechaInicio < hoy) {
-            setMensaje('La fecha y hora de inicio no puede ser anterior a la fecha y hora actual.');
+        const fechaInicio = combinarFechaHora(fechaIni, horaIni);
+
+        // Convertimos a milisegundos para comparar números
+        const tiempoFinal = fechaFinal.getTime();
+        const tiempoInicio = fechaInicio.getTime();
+        const tiempoHoy = new Date().setSeconds(0, 0);
+
+        if (titulo === '' || desc === '' || repetible === '' || diasRepe === '') {
+            setMensaje('Todos los campos son obligatorios');
             setVisibleDialog(true);
             return;
         }
-        if (fechaFinal < hoy) {
-            setMensaje('La fecha de término no puede ser anterior a la fecha y hora actual.');
+
+        // --- VALIDACIONES CORREGIDAS ---
+
+        // 1. Solo validar contra "hoy" si el usuario cambió la fecha de inicio a una nueva
+        // Si la fecha de inicio es la original y ya pasó, permitimos guardar.
+        const esFechaInicioNueva = tiempoInicio !== new Date(Number(tarea.fechaInicio)).getTime();
+
+        if (esFechaInicioNueva && tiempoInicio < tiempoHoy) {
+            setMensaje('La nueva fecha de inicio no puede ser anterior a la actual.');
             setVisibleDialog(true);
             return;
         }
-        if (fechaFinal <= fechaInicio) {
+
+        // 2. La fecha de término SIEMPRE debe ser mayor a hoy (porque no ha terminado)
+        if (tiempoFinal < tiempoHoy) {
+            setMensaje('La fecha de término no puede ser anterior a la fecha actual.');
+            setVisibleDialog(true);
+            return;
+        }
+
+        // 3. Comparación lógica entre inicio y fin
+        if (tiempoFinal <= tiempoInicio) {
             setMensaje('La fecha término debe ser posterior a la fecha de inicio.');
             setVisibleDialog(true);
             return;
         }
+
         try {
             const { data } = await actualizarTarea({
                 variables: {
                     id: tarea.id,
                     input: {
-                        titulo: titulo,
+                        titulo,
                         descripcion: desc,
-                        fechaInicio: fechaInicioFormato,
-                        fechaFinal: fechaFormato,
-                        repetible: repetible,
+                        fechaInicio: fechaInicio.toISOString(),
+                        fechaFinal: fechaFinal.toISOString(),
+                        repetible,
                         diasRepetible: diasRepe,
                         grupoPertenece: route.params.idGrupo
                     }
                 }
-            })
-            setMensaje('Tarea actualizada correctamente')
-            setsnackbarVisible(true)
-            setRedirigir(true)
+            });
+            setMensaje('Tarea actualizada correctamente');
+            setsnackbarVisible(true);
+            setRedirigir(true);
         } catch (error) {
-            console.log(error)
+            console.log(error);
         }
     }
 
